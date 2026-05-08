@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sudoku Bootstrap</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body{
+    background:#f4f6f9;
+    text-align:center;
+}
+
+.sudoku{
+    width:360px;
+    margin:20px auto;
+}
+
+.sudoku input{
+    width:40px;
+    height:40px;
+    text-align:center;
+    font-size:18px;
+    border:1px solid #ccc;
+}
+
+.sudoku input:focus{
+    outline:none;
+    background:#e8f0fe;
+}
+
+.bold{
+    border:2px solid black !important;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2 class="mt-4">🧩 Sudoku</h2>
+    <p>Completa el Sudoku y presiona "Verificar"</p>
+
+    <div class="sudoku" id="grid"></div>
+
+    <button class="btn btn-success mt-3" onclick="verificar()">Verificar</button>
+</div>
+
+<script>
+// Sudoku inicial (0 = vacío)
+const puzzle = [
+[5,3,0,0,7,0,0,0,0],
+[6,0,0,1,9,5,0,0,0],
+[0,9,8,0,0,0,0,6,0],
+[8,0,0,0,6,0,0,0,3],
+[4,0,0,8,0,3,0,0,1],
+[7,0,0,0,2,0,0,0,6],
+[0,6,0,0,0,0,2,8,0],
+[0,0,0,4,1,9,0,0,5],
+[0,0,0,0,8,0,0,7,9]
+];
+
+// Solución correcta
+const solution = [
+[5,3,4,6,7,8,9,1,2],
+[6,7,2,1,9,5,3,4,8],
+[1,9,8,3,4,2,5,6,7],
+[8,5,9,7,6,1,4,2,3],
+[4,2,6,8,5,3,7,9,1],
+[7,1,3,9,2,4,8,5,6],
+[9,6,1,5,3,7,2,8,4],
+[2,8,7,4,1,9,6,3,5],
+[3,4,5,2,8,6,1,7,9]
+];
+
+// Crear tablero
+const grid = document.getElementById("grid");
+
+for(let i=0;i<9;i++){
+    for(let j=0;j<9;j++){
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = 1;
+        input.max = 9;
+
+        if(puzzle[i][j] !== 0){
+            input.value = puzzle[i][j];
+            input.disabled = true;
+            input.style.background = "#ddd";
+        }
+
+        // Bordes gruesos (cada 3x3)
+        if(i % 3 === 0) input.classList.add("bold");
+        if(j % 3 === 0) input.classList.add("bold");
+
+        grid.appendChild(input);
+    }
+}
+
+// Verificar
+function verificar(){
+    const inputs = document.querySelectorAll(".sudoku input");
+    let correcto = true;
+
+    inputs.forEach((input, index)=>{
+        let fila = Math.floor(index / 9);
+        let col = index % 9;
+
+        if(parseInt(input.value) !== solution[fila][col]){
+            input.style.background = "#f8d7da";
+            correcto = false;
+        }else{
+            input.style.background = "#d4edda";
+        }
+    });
+
+    if(correcto){
+        alert("¡Excelente! Sudoku correcto ✅");
+    }else{
+        alert("Hay errores ❌");
+    }
+}
+</script>
+
+</body>
+</html>

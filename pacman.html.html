@@ -1,0 +1,248 @@
+}<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Pac-Man Esquina</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+body { background:#000; color:white; text-align:center; }
+
+#game {
+    display:grid;
+    grid-template-columns: repeat(19, 25px);
+    gap:2px;
+    justify-content:center;
+    margin-top:20px;
+}
+
+.cell { width:25px; height:25px; position:relative; }
+
+.wall { background:#0d6efd; }
+
+.dot::after {
+    content:'';
+    width:5px;
+    height:5px;
+    background:yellow;
+    border-radius:50%;
+    position:absolute;
+    top:10px; left:10px;
+}
+
+.power::after {
+    content:'';
+    width:10px;
+    height:10px;
+    background:cyan;
+    border-radius:50%;
+    position:absolute;
+    top:7px; left:7px;
+}
+
+.pacman {
+    background:yellow;
+    border-radius:50%;
+    animation: chomp 0.25s infinite;
+}
+
+@keyframes chomp {
+    0% { clip-path: polygon(50% 50%, 100% 0%, 100% 100%); }
+    50% { clip-path: polygon(50% 50%, 100% 40%, 100% 60%); }
+    100% { clip-path: polygon(50% 50%, 100% 0%, 100% 100%); }
+}
+
+.ghost { border-radius:50% 50% 0 0; }
+.red { background:red; }
+.pink { background:pink; }
+.cyan { background:cyan; }
+.orange { background:orange; }
+.scared { background:blue !important; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1 class="mt-3">Pac-Man</h1>
+    <h4>Puntos: <span id="score">0</span></h4>
+    <button class="btn btn-success mb-2" onclick="restartGame()">Reiniciar</button>
+    <div id="game"></div>
+</div>
+
+<script>
+const grid = document.getElementById('game');
+const scoreDisplay = document.getElementById('score');
+const width = 19;
+
+let squares = [];
+let pacmanIndex;
+let ghosts = [];
+let score = 0;
+let powerMode = false;
+let gameActive = false;
+let gameLoop = null;
+
+// 🟡 PACMAN AHORA EMPIEZA EN LA ESQUINA (posición 20)
+const PACMAN_START = 20;
+
+const layout = [
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,3,1,
+1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,
+1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,1,0,1,
+1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,
+1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,
+1,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1,
+1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,
+1,0,1,1,1,1,1,0,1,0,1,0,1,1,1,1,1,0,1,
+1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,
+1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,0,1,
+1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,1,
+1,1,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,1,
+1,3,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,3,1,
+1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+];
+
+function initGame(){
+    gameActive = false;
+
+    if(gameLoop) clearInterval(gameLoop);
+
+    grid.innerHTML = "";
+    squares = [];
+    score = 0;
+    powerMode = false;
+    scoreDisplay.textContent = score;
+
+    layout.forEach(val=>{
+        const div = document.createElement('div');
+        div.classList.add('cell');
+
+        if(val===1) div.classList.add('wall');
+        if(val===0) div.classList.add('dot');
+        if(val===3) div.classList.add('power');
+
+        grid.appendChild(div);
+        squares.push(div);
+    });
+
+    pacmanIndex = PACMAN_START;
+    squares[pacmanIndex].classList.add('pacman');
+
+    ghosts = [
+        {index:160, class:'ghost red'},
+        {index:161, class:'ghost pink'},
+        {index:162, class:'ghost cyan'},
+        {index:163, class:'ghost orange'}
+    ];
+
+    ghosts.forEach(g=>{
+        squares[g.index].classList.add(...g.class.split(' '));
+    });
+
+    setTimeout(()=>{
+        gameActive = true;
+        startLoop();
+    },300);
+}
+
+function movePacman(e){
+    if(!gameActive) return;
+
+    let next = pacmanIndex;
+
+    if(e.key==='ArrowLeft') next--;
+    if(e.key==='ArrowRight') next++;
+    if(e.key==='ArrowUp') next -= width;
+    if(e.key==='ArrowDown') next += width;
+
+    if(squares[next].classList.contains('wall')) return;
+
+    squares[pacmanIndex].classList.remove('pacman');
+    pacmanIndex = next;
+
+    if(squares[pacmanIndex].classList.contains('dot')){
+        squares[pacmanIndex].classList.remove('dot');
+        score+=10;
+    }
+
+    if(squares[pacmanIndex].classList.contains('power')){
+        squares[pacmanIndex].classList.remove('power');
+        powerMode = true;
+        setTimeout(()=> powerMode=false, 6000);
+    }
+
+    squares[pacmanIndex].classList.add('pacman');
+    scoreDisplay.textContent = score;
+}
+
+document.addEventListener('keydown', movePacman);
+
+function startLoop(){
+    gameLoop = setInterval(()=>{
+        if(!gameActive) return;
+
+        ghosts.forEach(g=>{
+            const dirs = [-1,1,-width,width];
+            let d = dirs[Math.floor(Math.random()*4)];
+            let next = g.index + d;
+
+            if(!squares[next] || squares[next].classList.contains('wall')) return;
+
+            squares[g.index].classList.remove(...g.class.split(' '));
+            g.index = next;
+
+            if(g.index === pacmanIndex){
+                if(powerMode){
+                    score+=100;
+                    g.index = 160;
+                } else {
+                    gameOver();
+                }
+            }
+
+            squares[g.index].classList.add(...g.class.split(' '));
+            if(powerMode) squares[g.index].classList.add('scared');
+        });
+
+        checkWin();
+
+    },250);
+}
+
+function checkWin(){
+    if(document.querySelectorAll('.dot,.power').length===0){
+        gameActive = false;
+        clearInterval(gameLoop);
+
+        Swal.fire({
+            icon:'success',
+            title:'¡GANASTE!'
+        });
+    }
+}
+
+function gameOver(){
+    if(!gameActive) return;
+
+    gameActive = false;
+    clearInterval(gameLoop);
+
+    Swal.fire({
+        icon:'error',
+        title:'GAME OVER'
+    });
+}
+
+function restartGame(){
+    initGame();
+}
+
+initGame();
+</script>
+
+</body>
+</html>

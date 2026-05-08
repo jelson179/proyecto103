@@ -1,0 +1,213 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Crucigrama Fútbol FINAL BIEN</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+body { background:#f8f9fa; }
+
+.grid {
+  display:grid;
+  grid-template-columns:repeat(8,45px);
+  gap:5px;
+  justify-content:center;
+}
+
+.cell-container { position:relative; }
+
+.cell {
+  width:45px;
+  height:45px;
+  text-align:center;
+  font-weight:bold;
+  text-transform:uppercase;
+}
+
+.number {
+  position:absolute;
+  top:2px;
+  left:4px;
+  font-size:10px;
+}
+
+.black { background:black; }
+
+.correct {
+  background:#198754 !important;
+  color:white;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container text-center mt-4">
+<h2>⚽ Crucigrama de Fútbol</h2>
+
+<div id="grid" class="grid my-4"></div>
+
+<div class="row text-start">
+<div class="col-md-6">
+<h5>Horizontales</h5>
+<ul>
+<li>1. Jugador que cuida la portería</li>
+<li>3. Acción de anotar</li>
+<li>5. Grupo de jugadores</li>
+</ul>
+</div>
+
+<div class="col-md-6">
+<h5>Verticales</h5>
+<ul>
+<li>2. Metal valioso</li>
+<li>4. Disparo al arco</li>
+<li>6. Objeto del juego</li>
+</ul>
+</div>
+</div>
+</div>
+
+<script>
+// AHORA TODO CUADRA
+const palabras = [
+ {num:1,palabra:"PORTERO",fila:0,col:0,dir:"H"},
+ {num:2,palabra:"ORO",fila:0,col:1,dir:"V"},
+ {num:3,palabra:"GOL",fila:2,col:0,dir:"H"},
+ {num:4,palabra:"TIRO",fila:0,col:3,dir:"V"}, // <-- cumple T... y cruza bien
+ {num:5,palabra:"EQUIPO",fila:4,col:0,dir:"H"},
+ {num:6,palabra:"BALON",fila:2,col:6,dir:"V"}
+];
+
+const filas=8, cols=8;
+let grid=[], inputs=[];
+let direccionActual="H";
+
+// crear grid
+for(let i=0;i<filas;i++){
+ grid[i]=[]; inputs[i]=[];
+ for(let j=0;j<cols;j++) grid[i][j]="";
+}
+
+// insertar palabras
+palabras.forEach(p=>{
+ for(let i=0;i<p.palabra.length;i++){
+  let r = p.dir==="H"?p.fila:p.fila+i;
+  let c = p.dir==="H"?p.col+i:p.col;
+  grid[r][c]=p.palabra[i];
+ }
+});
+
+// render
+const gridDiv=document.getElementById("grid");
+
+for(let i=0;i<filas;i++){
+ for(let j=0;j<cols;j++){
+  const cont=document.createElement("div");
+  cont.classList.add("cell-container");
+
+  const input=document.createElement("input");
+  input.maxLength=1;
+  input.classList.add("cell","form-control");
+
+  if(grid[i][j]===""){
+    input.disabled=true;
+    input.classList.add("black");
+  } else {
+    input.dataset.correct=grid[i][j];
+    input.dataset.row=i;
+    input.dataset.col=j;
+
+    input.addEventListener("click",()=>setDir(i,j));
+    input.addEventListener("input",mover);
+  }
+
+  const inicio = palabras.find(p=>p.fila===i && p.col===j);
+  if(inicio){
+    const num=document.createElement("div");
+    num.classList.add("number");
+    num.innerText=inicio.num;
+    cont.appendChild(num);
+  }
+
+  inputs[i][j]=input;
+  cont.appendChild(input);
+  gridDiv.appendChild(cont);
+ }
+}
+
+// dirección
+function setDir(i,j){
+ const p = palabras.find(p=>p.fila===i && p.col===j);
+ if(p) direccionActual = p.dir;
+}
+
+// mover con salto
+function mover(e){
+ const input=e.target;
+ input.value=input.value.toUpperCase();
+
+ let r=parseInt(input.dataset.row);
+ let c=parseInt(input.dataset.col);
+
+ if(direccionActual==="H"){
+   for(let j=c+1;j<cols;j++){
+     if(!inputs[r][j].disabled && inputs[r][j].value===""){
+       inputs[r][j].focus();
+       break;
+     }
+   }
+ } else {
+   for(let i=r+1;i<filas;i++){
+     if(!inputs[i][c].disabled && inputs[i][c].value===""){
+       inputs[i][c].focus();
+       break;
+     }
+   }
+ }
+
+ verificar();
+}
+
+// verificar
+function verificar(){
+ let completas=0;
+
+ palabras.forEach(p=>{
+   let ok=true;
+   let letras=[];
+
+   for(let i=0;i<p.palabra.length;i++){
+     let cell = p.dir==="H"
+       ? inputs[p.fila][p.col+i]
+       : inputs[p.fila+i][p.col];
+
+     letras.push(cell);
+
+     if(cell.value!==p.palabra[i]) ok=false;
+   }
+
+   if(ok){
+     letras.forEach(c=>c.classList.add("correct"));
+     completas++;
+   }
+ });
+
+ if(completas===palabras.length){
+   Swal.fire({
+     title:"¡Muy bien!",
+     icon:"success",
+     timer:2000,
+     showConfirmButton:false
+   });
+ }
+}
+</script>
+
+</body>
+</html>
+```
